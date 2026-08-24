@@ -3,6 +3,7 @@ import json
 import re
 import socket
 import threading
+import os
 
 
 # lists the wireless networks detected by the interface
@@ -86,6 +87,32 @@ def connect_wifi(ssid, passwrd, interface):
         return output
 
 
+# it checks whether the interface is active or connected to any network
+def check_interface(interface):
+    base_path = f"/sys/class/net/{interface}"
+    if not os.path.exists(base_path):
+        return False
+
+    try:
+        # operstate control (up / down)
+        with open(f"{base_path}/operstate", "r") as f:
+            operstate = f.read().strip()
+        # carrier control (1: connected, 0: disconnected)
+        # some interfaces may throw an error in the carrier file when they are down, which is why it's included in a try-except statement
+        try:
+            with open(f"{base_path}/carrier", "r") as f:
+                carrier = f.read().strip()
+        except OSError:
+            carrier = "0"
+
+        if operstate == "up" and carrier == "1":
+            return True  # network interface active and connected a network
+        else:
+            return False  # network interface is not active and is not connected to the network
+    except Exception as e:
+        return e
+
+
 # it enables bidirectional data transfer between two sockets
 def forward(src, dst):
     try:
@@ -164,7 +191,9 @@ def connbridge(client_socket, interface):
 
 
 # function that initiates the proxy structure
-def start_proxy(proxy_host='127.0.0.1', proxy_port=4030, bind_interface):
+def start_proxy(bind_interface, proxy_host='127.0.0.1', proxy_port=4030):
+    if not check_interface(bind_interface):
+      return f"'{bind_interface}' interface is not active or connected to a network"
     bind_interface = bind_interface.encode()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
