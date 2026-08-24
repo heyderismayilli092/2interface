@@ -1,6 +1,9 @@
 import subprocess
 import json
 import re
+import socket
+import threading
+
 
 # lists the wireless networks detected by the interface
 def parse_iw_scan(interface):
@@ -81,4 +84,95 @@ def connect_wifi(ssid, passwrd, interface):
           return output.stdout
     except AttributeError:
         return output
+
+
+# it enables bidirectional data transfer between two sockets
+def forward(src, dst):
+    try:
+        while True:
+            data = src.recv(8192)
+            if not data:
+                break
+            dst.sendall(data)
+    except:
+        pass
+    finally:
+        src.close()
+        dst.close()
+
+
+# function that redirects the connection to the relevant interface
+def connbridge(client_socket, interface):
+    try:
+        # receive the first request from the client
+        request = client_socket.recv(8192)
+        if not request:
+            return
+
+        # first line is being analyzed (method, target, protocol)
+        first_line = request.split(b'\r\n')[0]
+        words = first_line.split(b' ')
+        if len(words) < 2:
+            client_socket.close()
+            return
+
+        method = words[0].decode(errors='ignore')
+        target = words[1].decode(errors='ignore')
+
+        # HTTPS CONNECT method check
+        if method == 'CONNECT':
+            # example: duckduckgo.com:443 -> host='duckduckgo.com', port=443
+            host, port = target.split(':')
+            port = int(port)
+            is_https = True
+        else:
+            # parsing HTTP qequests
+            is_https = False
+            host = ""
+            port = 80
+            for line in request.split(b'\r\n'):
+                if line.lower().startswith(b'host:'):
+                    host_info = line.split(b': ')[1].decode(errors='ignore')
+                    if ":" in host_info:
+                        host, port = host_info.split(":")
+                        port = int(port)
+                    else:
+                        host = host_info
+                    break
+
+        if not host:
+            client_socket.close()
+            return
+
+        # create a socket to connect to the target server
+        target_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        target_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, interface)  # socket is connecting to the WLAN1 interface
+        target_socket.connect((host, port))  # connect to the target server via WLAN1
+
+        if is_https:
+            # client is returned a "Connection Successful" response to initiate the SSL handshake
+            client_socket.sendall(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+        else:
+            # plain HTTP, on the other hand, forwards the initial request packet to the destination exactly as it is
+            target_socket.sendall(request)
+
+        # initiate bidirectional tunneling
+        threading.Thread(target=forward, args=(client_socket, target_socket), daemon=True).start()
+        threading.Thread(target=forward, args=(target_socket, client_socket), daemon=True).start()
+    except Exception as e:
+        client_socket.close()
+
+
+# function that initiates the proxy structure
+def start_proxy(proxy_host='127.0.0.1', proxy_port=4030, bind_interface):
+    bind_interface = bind_interface.encode()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((proxy_host, proxy_port))
+    server.listen(200)
+    print(f"HTTPS Proxy {proxy_host}:{proxy_port} activated. Output: {bind_interface.decode()}")
+
+    while True:
+        client_sock, addr = server.accept()
+        threading.Thread(target=connbridge, args=(client_sock, bind_interface), daemon=True).start()
 
