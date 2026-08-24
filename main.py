@@ -11,7 +11,6 @@ def parse_iw_scan(interface):
         raise RuntimeError(f"iw scan failed: {proc.returncode}: {proc.stderr.strip()}")  # in case of an error, an empty list may be returned or an exception may be thrown
 
     lines = proc.stdout.splitlines()
-
     results = []
     current = None
 
@@ -42,4 +41,39 @@ def parse_iw_scan(interface):
     if current:
         results.append(current)
     return results
+
+
+# function to connect the network interface to the selected network
+def connect_wifi(ssid, passwrd, interface):
+    # connection function
+    def connproc(ssid, passwrd, interface):
+        cmd = ["nmcli", "device", "wifi", "connect", ssid, "password", passwrd, "ifname", interface]
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        return proc
+
+    output = connproc(ssid, passwrd, interface)
+    if output.stderr:
+        if "Error: 802-11-wireless-security.key-mgmt" in output.stderr:  # if it returns an error message related to connection security, the old connection will be deleted
+            del_oldconn = subprocess.run(["nmcli", "connection", "delete", ssid], text=True, check=False)
+            if del_oldconn.stderr:
+                if "Error: unknown connection" in del_oldconn.stderr:  # link to be deleted may not be found with its full name. Alternatively, that link may still be present in the interface
+                    # SSIDs of previously connected devices are listed
+                    iface_connlist = subprocess.run(["nmcli", "-t", "-f", "NAME,DEVICE", "connection", "show"], capture_output=True, text=True, check=True)
+                    connections = []
+                    for line in result.stdout.splitlines():
+                        name, iface = line.split(":", 1)
+                        if iface == interface:
+                            connections.append(name)
+                    # devices connected to the interface are being deleted
+                    for connection in connections:
+                        del_oldconn = subprocess.run(["nmcli", "connection", "delete", connection], text=True, check=False)
+            else:
+                output = connproc(ssid, passwrd, interface)
+                if output.stdout:
+                    return output.stdout
+        else:
+            raise RuntimeError(f"nmcli connection failed: {output.stderr.strip()}")
+    else:
+        return output.stdout
+
 
