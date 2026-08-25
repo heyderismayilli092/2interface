@@ -4,6 +4,9 @@ import re
 import socket
 import threading
 import os
+import ipaddress
+import netifaces
+from scapy.all import ARP, Ether, srp
 
 
 # lists the wireless networks detected by the interface
@@ -204,4 +207,13 @@ def start_proxy(bind_interface, proxy_host='127.0.0.1', proxy_port=4030):
     while True:
         client_sock, addr = server.accept()
         threading.Thread(target=connbridge, args=(client_sock, bind_interface), daemon=True).start()
+
+
+# Find the interface's IP address
+def iface_ipaddr(interface):
+    try:
+        ipaddr = netifaces.ifaddresses(interface)[netifaces.AF_INET] # retrieve AF_INET (IPv4) info
+        return ipaddr[0]['addr']
+    except (KeyError, ValueError):
+        return False
 
