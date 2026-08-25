@@ -217,3 +217,27 @@ def iface_ipaddr(interface):
     except (KeyError, ValueError):
         return False
 
+
+# scans the selected network interface and lists connected devices
+def scan_interface(target_ip, subnet_mask, interface):
+    try:
+        # IP address and subnet are combined to find the actual network range (e.g., 192.168.1.0/24)
+        # NOTE: IP address can also be the interface's IP address
+        interface_ip = ipaddress.IPv4Interface(f"{target_ip}/{subnet_mask}")
+        network_range = str(interface_ip.network)
+
+        # creating an ARP request packet
+        arp_request = ARP(pdst=network_range)
+        broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+        packet = broadcast / arp_request
+        answered_list = srp(packet, timeout=3, iface=interface, verbose=False)[0]
+
+        discovered_devices = []  # devices list
+        for element in answered_list:
+            device_info = {"ip": element[1].psrc, "mac": element[1].hwsrc}
+            discovered_devices.append(device_info)
+
+        return discovered_devices
+    except Exception as e:
+        return e
+
