@@ -7,6 +7,7 @@ import os
 import ipaddress
 import netifaces
 import requests
+import ssl
 from requests.adapters import HTTPAdapter
 from urllib3.util import connection
 from scapy.all import ARP, Ether, srp
@@ -247,28 +248,38 @@ def scan_interface(target_ip, subnet_mask, interface):
 
 # finds the external IP address of the selected network interface
 def iface_iplookup(interface):
-    tmp_create_connection = connection.create_connection
-
-    local_ip = iface_ipaddr(interface)  # retrieve interface IP address
-    iface_status = check_interface(interface)  # check interface status
-    if not iface_status:
+    if not check_interface(interface):
         return False
 
-    def iface_sourceip_conn(*args, **kwargs):
-        kwargs["source_address"] = (local_ip, 0)  # request is sent along with the network interface's IP address
-        return tmp_create_connection(*args, **kwargs)
-
-    connection.create_connection = iface_sourceip_conn
-
     try:
-        session = requests.Session()
-        url = "https://ipify.org"
-        resp = session.get(url, timeout=3)
-        connection.create_connection = tmp_create_connection  # original address is being uploaded so that other requests are not affected
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, interface.encode())
+        sock.settimeout(3)
+        sock.connect(("api.ipify.org", 443))
 
-        return resp.json()["ip"]
+        context = ssl.create_default_context()
+
+        with context.wrap_socket(sock, server_hostname="api.ipify.org") as tls_sock:
+            request = (
+                "GET /?format=json HTTP/1.1\r\n"
+                "Host: api.ipify.org\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+            )
+
+            tls_sock.sendall(request.encode())
+            response = b""
+
+            while True:
+                data = tls_sock.recv(4096)
+                if not data:
+                    break
+                response += data
+
+        body = response.split(b"\r\n\r\n", 1)[1]
+        return json.loads(body)["ip"]
+
     except Exception as e:
-        connection.create_connection = tmp_create_connection
         return e
 
 
@@ -282,7 +293,6 @@ def iface_gateway(interface):
             if parts and parts[0] == "default":
                 if "via" in parts:
                     return parts[parts.index("via") + 1]
-
         return None
     except Exception:
         return None
