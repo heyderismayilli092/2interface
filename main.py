@@ -6,6 +6,9 @@ import threading
 import os
 import ipaddress
 import netifaces
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import connection
 from scapy.all import ARP, Ether, srp
 
 
@@ -239,5 +242,32 @@ def scan_interface(target_ip, subnet_mask, interface):
 
         return discovered_devices
     except Exception as e:
+        return e
+
+
+# finds the external IP address of the selected network interface
+def iface_iplookup(interface):
+    tmp_create_connection = connection.create_connection
+
+    local_ip = iface_ipaddr(interface)  # retrieve interface IP address
+    iface_status = check_interface(interface)  # check interface status
+    if not iface_status:
+        return False
+
+    def iface_sourceip_conn(*args, **kwargs):
+        kwargs["source_address"] = (local_ip, 0)  # request is sent along with the network interface's IP address
+        return tmp_create_connection(*args, **kwargs)
+
+    connection.create_connection = iface_sourceip_conn
+
+    try:
+        session = requests.Session()
+        url = "https://ipify.org"
+        resp = session.get(url, timeout=2)
+        connection.create_connection = tmp_create_connection  # original address is being uploaded so that other requests are not affected
+
+        return resp.json()["ip"]
+    except Exception as e:
+        connection.create_connection = tmp_create_connection
         return e
 
