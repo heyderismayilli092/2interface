@@ -14,7 +14,7 @@ from scapy.all import ARP, Ether, srp
 
 
 # lists the wireless networks detected by the interface
-def parse_iw_scan(interface):
+def scan_wireless_iw(interface):
     cmd = ["iw", "dev", interface, "scan"]
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
 
