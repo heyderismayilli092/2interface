@@ -198,7 +198,7 @@ def connbridge(client_socket, interface):
 
 
 # function that initiates the proxy structure
-def start_proxy(bind_interface, proxy_host='127.0.0.1', proxy_port=4030):
+def start_proxy(bind_interface, proxy_port, proxy_host='127.0.0.1'):
     if not check_interface(bind_interface):
       return f"'{bind_interface}' interface is not active or connected to a network"
     bind_interface = bind_interface.encode()
