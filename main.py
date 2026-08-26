@@ -263,11 +263,27 @@ def iface_iplookup(interface):
     try:
         session = requests.Session()
         url = "https://ipify.org"
-        resp = session.get(url, timeout=2)
+        resp = session.get(url, timeout=3)
         connection.create_connection = tmp_create_connection  # original address is being uploaded so that other requests are not affected
 
         return resp.json()["ip"]
     except Exception as e:
         connection.create_connection = tmp_create_connection
         return e
+
+
+# finds the IPv4 default gateway of the interface
+def iface_gateway(interface):
+    try:
+        result = subprocess.run(["ip", "-4", "route", "show", "dev", interface], capture_output=True, text=True, timeout=2)
+        for line in result.stdout.splitlines():
+            parts = line.split()
+
+            if parts and parts[0] == "default":
+                if "via" in parts:
+                    return parts[parts.index("via") + 1]
+
+        return None
+    except Exception:
+        return None
 
