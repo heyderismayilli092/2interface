@@ -44,9 +44,9 @@ def main(interface, proxy_port):
     # '--interface-gateway'
     elif args.interface_gateway:
         # controls
-        if not utils.iface_gateway(interface):
+        if not utils.check_interface(interface):
             parser.error(f"The interface '{interface}' is not active or connected to any network !")
-        ip_gateway = utils.iface_ipaddr(interface)
+        ip_gateway = utils.iface_gateway(interface)
         print(ip_gateway)
 
     # '--start-proxy'
@@ -54,7 +54,7 @@ def main(interface, proxy_port):
         # controls
         if os.getuid() != 0:
             parser.error("Run with root access !")
-        if not utils.iface_gateway(interface):
+        if not utils.check_interface(interface):
             parser.error(f"The interface '{interface}' is not active or connected to any network !")
         # start proxy service
         print("To stop: CTRL+C")
@@ -68,7 +68,7 @@ def main(interface, proxy_port):
         # controls
         if os.getuid() != 0:
             parser.error("Run with root access !")
-        if not utils.iface_gateway(interface):
+        if not utils.check_interface(interface):
             parser.error(f"The interface '{interface}' is not active or connected to any network !")
         # scan interface
         ip_address = utils.iface_ipaddr(interface)
