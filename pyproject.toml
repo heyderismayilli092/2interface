@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "2interface"
+version = "0.0.1"
+description = "A Python-based Linux network manager for Wi-Fi discovery, connection management, policy-based routing, and per-application traffic routing"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+authors = [
+    { name = "Heydar Ismayilli" }
+]
+
+dependencies = ["scapy"]
+
+[project.scripts]
+my-project = "2interface.2interface:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
