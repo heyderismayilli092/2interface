@@ -1,16 +1,3 @@
-#!/usr/bin/python3
+#!/bin/sh
 
-import os
-import sys
-
-venv_python = "/opt/2interface/venv/bin/python"
-
-if sys.executable != venv_python:
-    os.execv(
-        venv_python,
-        [venv_python] + sys.argv
-    )
-
-sys.path.insert(0, '/usr/share/2interface/src/')
-import main
-
+exec /opt/2interface/venv/bin/python -m twointerface.main "$@"
