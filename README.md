@@ -4,7 +4,7 @@ A Python-based Linux network manager for Wi-Fi discovery, connection management,
 
 <div align="center">
 
-<img src="docs/images/2interface-overview.png" alt="2interface graphical overview" width="900">
+<img src="images/2interface.png" alt="2interface graphical overview" width="900">
 
 </div>
 
