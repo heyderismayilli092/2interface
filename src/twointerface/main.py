@@ -1,8 +1,9 @@
 import argparse
-import utils
+import twointerface.utils
 import json
 import os
 import sys
+import time
 
 # '2interface' software arguments
 def main(interface, proxy_port):
@@ -97,6 +98,8 @@ if __name__ == '__main__':
         proxy_port = data["proxy_port"]
     if len(interface) == 0:
         print("Fill in the configuration file!")
+        time.sleep(1)
+        os.system("nano /usr/share/2interface/config.json")
         sys.exit(1)
     main(interface, proxy_port)  # main function
 
