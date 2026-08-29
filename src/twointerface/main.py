@@ -90,7 +90,8 @@ def main(interface, proxy_port):
 
 if __name__ == '__main__':
     # reading configuration file
-    with open("config.json", "r") as jsondata:
+    config_file = "/usr/share/2interface/config.json"
+    with open(config_file, "r") as jsondata:
         data = json.load(jsondata)
         interface = data["interface"]
         proxy_port = data["proxy_port"]
