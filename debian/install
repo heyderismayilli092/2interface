@@ -1,0 +1,4 @@
+src/config.json /usr/share/2interface
+src/utils.py /usr/lib/python3/dist-packages
+src/main.py /usr/share/2interface
+2interface /usr/bin

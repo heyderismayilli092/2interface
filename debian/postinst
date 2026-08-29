@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "Create venv..."
+python3 -m venv --system-site-packages /opt/2interface/venv
+echo "Install requirements..."
+/opt/2interface/venv/bin/pip install requests scapy
