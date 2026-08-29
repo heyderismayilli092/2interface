@@ -17,7 +17,7 @@ authors = [
 dependencies = ["scapy"]
 
 [project.scripts]
-2interface = "2interface.main:main"
+2interface = "twointerface.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
