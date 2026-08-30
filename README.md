@@ -75,6 +75,12 @@ This is an important secondary capability of 2interface: the project is not limi
 
 Some operations may require elevated privileges depending on the Linux distribution and system configuration.
 
+## Build .deb package
+```bash
+sudo apt install build-essential devscripts
+dpkg-buildpackage -us -uc
+```
+
 ## Project Status
 
 2interface is an actively developed project focused on multi-interface networking, policy-based routing, and application-specific traffic routing on Linux.
